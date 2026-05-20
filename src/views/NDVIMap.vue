@@ -206,8 +206,7 @@
 <script>
 import axios from 'axios'
 import L from 'leaflet'
-
-const API = 'http://localhost:5000/api'
+import { API } from '../config/api'
 
 export default {
   name: 'NDVIMap',

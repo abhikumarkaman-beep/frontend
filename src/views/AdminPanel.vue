@@ -161,8 +161,8 @@
 
 <script>
 import axios from 'axios'
+import { API } from '../config/api'
 import { pipelineStore } from '../store/pipelineStore'
-const API = 'http://localhost:5000/api'
 
 export default {
   name: 'AdminPanel',

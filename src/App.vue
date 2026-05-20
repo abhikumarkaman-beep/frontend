@@ -99,6 +99,7 @@
 
 <script>
 import axios from 'axios'
+import { API } from './config/api'
 
 export default {
   name: 'App',
@@ -142,7 +143,7 @@ export default {
     },
     async fetchPending() {
       try {
-        const { data } = await axios.get('http://localhost:5000/api/admin/users?status=pending')
+        const { data } = await axios.get(`${API}/admin/users?status=pending`)
         this.pendingCount = data.users?.length || 0
       } catch { /* ignore */ }
     },

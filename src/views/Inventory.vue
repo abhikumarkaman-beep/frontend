@@ -174,7 +174,7 @@
 
 <script>
 import axios from 'axios'
-const API = 'http://localhost:5000/api'
+import { API } from '../config/api'
 
 export default {
   name: 'Inventory',
@@ -609,4 +609,3 @@ export default {
   cursor: not-allowed;
 }
 </style>
-
