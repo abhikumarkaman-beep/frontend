@@ -141,7 +141,7 @@
         <div class="reset-input-row">
           <input type="text" v-model="resetConfirm" placeholder='Type RESET to confirm' class="reset-input" />
           <button class="action-btn delete" style="flex: 0; padding: 10px 20px;" 
-                  @click="handleReset" :disabled="resetConfirm !== 'RESET' || resetting">
+                  @click="handleReset" :disabled="!isResetReady || resetting">
             {{ resetting ? 'Resetting...' : '🗑️ Reset System' }}
           </button>
         </div>
@@ -161,8 +161,8 @@
 
 <script>
 import axios from 'axios'
-import { API } from '../config/api'
 import { pipelineStore } from '../store/pipelineStore'
+import { API } from '../api'
 
 export default {
   name: 'AdminPanel',
@@ -179,6 +179,11 @@ export default {
   },
   mounted() {
     this.fetchUsers()
+  },
+  computed: {
+    isResetReady() {
+      return this.resetConfirm.trim().toUpperCase() === 'RESET'
+    }
   },
   methods: {
     async fetchUsers() {
@@ -236,7 +241,7 @@ export default {
       return new Date(dt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     },
     async handleReset() {
-      if (this.resetConfirm !== 'RESET') return
+      if (!this.isResetReady) return
       if (!confirm('Are you SURE? This will delete ALL campaigns, predictions, and delivery logs!')) return
       this.resetting = true
       this.resetResult = null

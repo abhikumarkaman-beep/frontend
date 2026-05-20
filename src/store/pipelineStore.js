@@ -9,6 +9,7 @@ export const pipelineStore = reactive({
   total: 0,
   phase: '',
   latest: '',
+  run_id: null,
   
   // Results (persist across page navigation)
   result: null,
@@ -24,6 +25,7 @@ export const pipelineStore = reactive({
     this.total = 0
     this.phase = 'Initializing pipeline...'
     this.latest = ''
+    this.run_id = null
     this.result = {
       district_health: [],
       campaigns: [],
@@ -53,6 +55,7 @@ export const pipelineStore = reactive({
     this.total = 0
     this.phase = ''
     this.latest = ''
+    this.run_id = null
     this.result = null
     this.expandedStates = {}
     if (this._source) {

@@ -10,10 +10,10 @@
           <option value="">All India</option>
           <option v-for="s in stateList" :key="s" :value="s">{{ s }}</option>
         </select>
-        <button class="btn btn-primary" @click="runPipeline(false)" :disabled="loading">
+        <button class="btn btn-primary" @click="runPipelinePolling(false)" :disabled="loading">
           {{ loading ? 'Running...' : '▶ Run Pipeline' }}
         </button>
-        <button class="btn btn-syngenta" @click="runPipeline(true)" :disabled="loading">
+        <button class="btn btn-syngenta" @click="runPipelinePolling(true)" :disabled="loading">
           {{ loading ? 'Running...' : '🔬 Real System Run (Syngenta 33)' }}
         </button>
       </div>
@@ -326,8 +326,8 @@
 
 <script>
 import axios from 'axios'
-import { API } from '../config/api'
 import { pipelineStore } from '../store/pipelineStore'
+import { API } from '../api'
 
 export default {
   name: 'Dashboard',
@@ -342,6 +342,7 @@ export default {
       healthSearch: '',
       healthStateFilter: '',
       store: pipelineStore,  // global store reference
+      pipelinePollTimer: null,
     }
   },
   computed: {
@@ -514,6 +515,82 @@ export default {
         const { data } = await axios.get(`${API}/campaign/list?limit=10`)
         this.campaigns = data.campaigns || []
       } catch (e) { console.error('Campaigns error:', e) }
+    },
+    stopPipelinePoll() {
+      if (this.pipelinePollTimer) {
+        clearInterval(this.pipelinePollTimer)
+        this.pipelinePollTimer = null
+      }
+    },
+    applyPipelineStatus(data, syngentaMode = false) {
+      const s = this.store
+      s.progress = data.progress || 0
+      s.total = data.total || 0
+      s.phase = data.phase || data.status || ''
+      s.latest = data.latest || ''
+
+      if (data.result) {
+        s.result = {
+          ...s.result,
+          ...data.result,
+          mode: syngentaMode ? 'syngenta_real' : 'standard',
+        }
+      }
+
+      const expanded = { ...s.expandedStates }
+      for (const h of s.result?.district_health || []) {
+        if (Object.keys(expanded).length >= 3) break
+        if (h.state && !expanded[h.state]) expanded[h.state] = true
+      }
+      s.expandedStates = expanded
+    },
+    async pollPipeline(runId, syngentaMode = false) {
+      const s = this.store
+      try {
+        const { data } = await axios.get(`${API}/campaign/status/${runId}`)
+        this.applyPipelineStatus(data, syngentaMode)
+
+        if (data.status === 'error') {
+          this.stopPipelinePoll()
+          s.finish()
+          alert(data.error || 'Pipeline failed')
+          return
+        }
+
+        if (data.status === 'complete') {
+          this.stopPipelinePoll()
+          s.finish()
+          this.expandAllStates()
+          this.fetchStats()
+          this.fetchCampaigns()
+        }
+      } catch (e) {
+        s.phase = 'Connection hiccup - retrying status...'
+        console.error('Pipeline poll error:', e)
+      }
+    },
+    async runPipelinePolling(syngentaMode = false) {
+      const s = this.store
+      this.stopPipelinePoll()
+      s.startRun()
+      s.result.mode = syngentaMode ? 'syngenta_real' : 'standard'
+
+      try {
+        const { data } = await axios.post(`${API}/campaign/start`, {
+          state: this.selectedState || null,
+          limit: 1000,
+          syngenta_only: syngentaMode,
+        })
+        s.run_id = data.run_id
+        s.phase = 'Pipeline started...'
+        await this.pollPipeline(data.run_id, syngentaMode)
+        this.pipelinePollTimer = setInterval(() => {
+          this.pollPipeline(data.run_id, syngentaMode)
+        }, 2000)
+      } catch (e) {
+        alert(e.response?.data?.error || `Pipeline failed: ${e.message}`)
+        s.finish()
+      }
     },
     runPipeline(syngentaMode = false) {
       const s = this.store
@@ -977,4 +1054,3 @@ export default {
   text-align: right;
 }
 </style>
-

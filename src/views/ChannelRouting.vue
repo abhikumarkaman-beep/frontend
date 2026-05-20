@@ -181,7 +181,7 @@
 
 <script>
 import axios from 'axios'
-import { API } from '../config/api'
+import { API } from '../api'
 
 export default {
   name: 'ChannelRouting',
